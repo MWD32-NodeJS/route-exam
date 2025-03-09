@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google OAuth Login</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+    <h2>Google OAuth Login</h2>
+
+    <!-- Google Sign-In Button -->
+    <div id="g_id_onload"
+         data-client_id="184535760660-fj1r54g5e7cs4toa4isial7vvhh60gv5.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse"
+         data-scope="openid email profile gender"
+         data-auto_prompt="false"
+         data-use_fedcm_for_prompt="true">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+
+    <script>
+        async function handleCredentialResponse(response) {
+            const idToken = response.credential;
+            console.log("ID Token:", idToken);
+            fetch (`http://localhost:3000/auth/google?token=${idToken}`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json"
+              }
+            })
+
+            // Request access token manually
+            const googleUser = google.accounts.oauth2.initTokenClient({
+                client_id: "184535760660-fj1r54g5e7cs4toa4isial7vvhh60gv5.apps.googleusercontent.com",
+                scope: "openid email profile https://www.googleapis.com/auth/user.birthday.read https://www.googleapis.com/auth/userinfo.profile",
+                callback: async (tokenResponse) => {
+                    console.log("Access Token:", tokenResponse.access_token);
+
+                    // Send ID token + access token to backend
+                    const res = await fetch("/auth/google", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            idToken,
+                            accessToken: tokenResponse.access_token
+                        })
+                    });
+
+                    const data = await res.json();
+                    console.log("Backend Response:", data);
+                }
+            });
+
+            googleUser.requestAccessToken();
+        }
+    </script>
+
+</body>
+</html>
